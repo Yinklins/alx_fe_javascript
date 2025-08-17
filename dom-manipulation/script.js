@@ -52,10 +52,10 @@ function renderQuote(q) {
 
 // ---- Random Quote ----
 function showRandomQuote() {
-  const category = categoryFilter.value;
-  const filtered = category === "all"
+  const selectedCategory = categoryFilter.value; // ✅ renamed
+  const filtered = selectedCategory === "all"
     ? quotes
-    : quotes.filter(q => q.category.toLowerCase() === category.toLowerCase());
+    : quotes.filter(q => q.category.toLowerCase() === selectedCategory.toLowerCase());
 
   if (filtered.length === 0) {
     quoteDisplay.textContent = "No quotes available in this category.";
@@ -90,8 +90,8 @@ function populateCategories() {
 
 // ---- Filter Quotes ----
 function filterQuotes() {
-  const selected = categoryFilter.value;
-  localStorage.setItem(LS_CATEGORY_FILTER, selected);
+  const selectedCategory = categoryFilter.value; // ✅ renamed
+  localStorage.setItem(LS_CATEGORY_FILTER, selectedCategory);
   showRandomQuote();
 }
 
