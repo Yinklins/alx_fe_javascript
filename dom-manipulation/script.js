@@ -16,6 +16,7 @@ async function fetchQuotesFromServer(limit = 5) {
   }
 }
 
+
 // ---- Server Sync ----
 async function syncWithServer() {
   const serverQuotes = await fetchQuotesFromServer(5);
