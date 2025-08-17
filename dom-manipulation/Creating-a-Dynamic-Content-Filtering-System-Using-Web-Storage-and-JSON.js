@@ -3,10 +3,6 @@ const LS_QUOTES_KEY = "quotes";
 const LS_CATEGORY_FILTER = "lastCategoryFilter";
 const SS_LAST_QUOTE_KEY = "lastViewedQuote";
 
-// ---- Server Simulation ----
-const SERVER_URL = "https://jsonplaceholder.typicode.com/posts"; // simulate quotes API
-const SYNC_INTERVAL = 15000; // 15s sync
-
 // ---- Helpers ----
 function loadQuotes() {
   try {
@@ -56,7 +52,7 @@ function renderQuote(q) {
 
 // ---- Random Quote ----
 function showRandomQuote() {
-  const selectedCategory = categoryFilter.value;
+  const selectedCategory = categoryFilter.value; // ✅ renamed
   const filtered = selectedCategory === "all"
     ? quotes
     : quotes.filter(q => q.category.toLowerCase() === selectedCategory.toLowerCase());
@@ -69,13 +65,17 @@ function showRandomQuote() {
   const idx = Math.floor(Math.random() * filtered.length);
   renderQuote(filtered[idx]);
 
+  // Save last viewed in Session
   sessionStorage.setItem(SS_LAST_QUOTE_KEY, JSON.stringify(filtered[idx]));
 }
 
 // ---- Populate Categories ----
 function populateCategories() {
   const uniqueCategories = [...new Set(quotes.map(q => q.category))];
+
+  // Clear existing except "all"
   categoryFilter.innerHTML = `<option value="all">All Categories</option>`;
+
   uniqueCategories.forEach(cat => {
     const opt = document.createElement("option");
     opt.value = cat;
@@ -83,18 +83,19 @@ function populateCategories() {
     categoryFilter.appendChild(opt);
   });
 
+  // Restore last selected filter from Local Storage
   const savedFilter = localStorage.getItem(LS_CATEGORY_FILTER) || "all";
   categoryFilter.value = savedFilter;
 }
 
 // ---- Filter Quotes ----
 function filterQuotes() {
-  const selectedCategory = categoryFilter.value;
+  const selectedCategory = categoryFilter.value; // ✅ renamed
   localStorage.setItem(LS_CATEGORY_FILTER, selectedCategory);
   showRandomQuote();
 }
 
-// ---- Add Quote ----
+// ---- Add Quote Form ----
 function createAddQuoteForm() {
   const form = document.createElement("form");
   form.style.marginTop = "16px";
@@ -118,31 +119,18 @@ function createAddQuoteForm() {
   form.appendChild(submitBtn);
   document.body.appendChild(form);
 
-  form.addEventListener("submit", async (e) => {
+  form.addEventListener("submit", (e) => {
     e.preventDefault();
     const newQuote = { text: quoteInput.value.trim(), category: categoryInput.value.trim() };
     if (!isValidQuote(newQuote)) return;
 
     quotes.push(newQuote);
     saveQuotes();
-    populateCategories();
-    alert("New quote added locally!");
-
-    // ---- Simulate sending to server ----
-    try {
-      await fetch(SERVER_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newQuote)
-      });
-      console.log("Quote synced to server:", newQuote);
-    } catch {
-      console.warn("Failed to sync new quote to server.");
-    }
-
+    populateCategories(); // update dropdown if new category introduced
+    alert("New quote added!");
     quoteInput.value = "";
     categoryInput.value = "";
-    filterQuotes();
+    filterQuotes(); // refresh display
   });
 }
 
@@ -184,49 +172,6 @@ function importFromJsonFile(event) {
   reader.readAsText(file);
 }
 
-// ---- Server Sync ----
-async function syncWithServer() {
-  try {
-    const res = await fetch(SERVER_URL + "?_limit=5"); // fetch some posts as dummy quotes
-    const serverData = await res.json();
-
-    // Convert posts -> quotes format
-    const serverQuotes = serverData.map(post => ({
-      text: post.title,
-      category: "Server"
-    }));
-
-    // ---- Conflict resolution: server overrides duplicates ----
-    const merged = [...quotes];
-    serverQuotes.forEach(sq => {
-      const exists = merged.some(lq => lq.text === sq.text);
-      if (!exists) merged.push(sq);
-    });
-
-    if (merged.length !== quotes.length) {
-      quotes = merged;
-      saveQuotes();
-      populateCategories();
-      filterQuotes();
-      showNotification("Quotes synced with server. New quotes added!");
-    }
-  } catch {
-    console.warn("Server sync failed.");
-  }
-}
-
-function showNotification(msg) {
-  const note = document.createElement("div");
-  note.textContent = msg;
-  note.style.background = "#444";
-  note.style.color = "#fff";
-  note.style.padding = "8px";
-  note.style.marginTop = "10px";
-  note.style.borderRadius = "5px";
-  document.body.appendChild(note);
-  setTimeout(() => note.remove(), 4000);
-}
-
 // ---- Events ----
 newQuoteBtn.addEventListener("click", showRandomQuote);
 exportBtn.addEventListener("click", exportToJsonFile);
@@ -236,6 +181,7 @@ window.importFromJsonFile = importFromJsonFile;
 window.addEventListener("DOMContentLoaded", () => {
   populateCategories();
 
+  // Restore last viewed from Session, else show random
   const last = sessionStorage.getItem(SS_LAST_QUOTE_KEY);
   if (last) {
     try {
@@ -248,8 +194,4 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   createAddQuoteForm();
-
-  // ---- Start syncing ----
-  syncWithServer();
-  setInterval(syncWithServer, SYNC_INTERVAL);
 });
